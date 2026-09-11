@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精神科護理師臨床生存大富翁</title>
+    <style>
+        /* ================= 樣式設定 ================= */
+        :root {
+            --primary-color: #4A90E2; --secondary-color: #50E3C2; --bg-color: #F5F7FA;
+            --board-bg: #E8EEF2; --text-color: #333; --danger-color: #E74C3C; --warning-color: #F39C12;
+            --success-color: #2ECC71;
+        }
+        * { box-sizing: border-box; font-family: 'Microsoft JhengHei', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        #start-screen { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); text-align: center; max-width: 550px; width: 100%; }
+        h1 { color: var(--primary-color); margin-bottom: 20px; font-size: 26px; }
+        
+        /* 模式切換按鈕 */
+        .mode-tabs { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        .mode-tabs button { flex: 1; background: #ddd; color: #555; padding: 10px; border-radius: 8px; font-size: 16px; }
+        .mode-tabs button.active { background: var(--primary-color); color: white; }
+
+        .setting-group { text-align: left; margin-bottom: 15px; background: var(--board-bg); padding: 15px; border-radius: 8px; }
+        .setting-group h3 { margin-top: 0; color: var(--primary-color); font-size: 16px; margin-bottom: 10px;}
+        label { display: inline-block; margin-right: 15px; cursor: pointer; line-height: 1.8; font-size: 14px; }
+        
+        .name-input-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .name-input-box input { padding: 8px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+        
+        .btn-start { background-color: var(--primary-color); color: white; border: none; padding: 12px 25px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: 0.3s; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-start:hover { background-color: #357ABD; }
+        .btn-start:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        #game-screen { display: none; width: 100%; max-width: 1200px; flex-direction: column; gap: 20px; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .timer { font-size: 24px; font-weight: bold; color: var(--danger-color); padding: 5px 15px; border-radius: 8px; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        .timer.warning { animation: pulse 1s infinite; background: #FDEDEC; }
+
+        .players-container { display: flex; gap: 15px; justify-content: space-between; flex-wrap: wrap; }
+        .player-card { background: white; flex: 1; min-width: 150px; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; border-top: 5px solid; transition: transform 0.2s; }
+        .player-card.active { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.15); }
+        .money { font-size: 18px; font-weight: bold; margin: 10px 0; transition: color 0.3s; }
+        
+        .board-container { display: flex; justify-content: center; position: relative; }
+        .board { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(5, 1fr); gap: 5px; width: 100%; max-width: 900px; height: 600px; background: var(--board-bg); padding: 10px; border-radius: 10px; }
+        .cell { background: white; border: 2px solid #ddd; border-radius: 5px; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; font-weight: bold; padding: 5px; font-size: 13px; position: relative; }
+        .cell .title { margin-top: 5px; pointer-events: none; }
+        .cell.corner { background-color: var(--secondary-color); color: #1A535C; }
+        .cell.fate { background-color: #FAD7A1; }
+        
+        .token-area { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; width: 100%; height: 30px; margin-top: auto; }
+        .player-token { width: 22px; height: 22px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; color: white; font-size: 12px; font-weight: bold;}
+        
+        .center-area { grid-column: 2 / 7; grid-row: 2 / 5; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
+        .dice-area { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+        #dice-result { font-size: 48px; margin: 15px 0; font-weight: bold; color: var(--primary-color); }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; max-width: 600px; width: 90%; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border-top: 8px solid var(--primary-color); }
+        .options { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+        .options button { background: var(--board-bg); color: var(--text-color); text-align: left; border: 1px solid #ccc; font-size: 16px; padding: 10px; }
+        .options button:hover { background: var(--primary-color); color: white; }
+        
+        .result-box { display: none; margin-top: 20px; padding: 15px; border-radius: 8px; font-weight: bold; text-align: left; }
+        .result-box.correct { background: #D5F5E3; color: #27AE60; }
+        .result-box.wrong { background: #FADBD8; color: #C0392B; }
+
+        .rank-item { padding: 12px; margin: 8px 0; border-radius: 8px; font-weight: bold; text-align: left; background: var(--board-bg); display: flex; justify-content: space-between;}
+        .rank-item.first { background: #FFF9C4; font-size: 20px; border: 2px solid #F1C40F;}
+    </style>
+</head>
+<body>
+
+    <!-- 1. 開始畫面 -->
+    <div id="start-screen">
+        <h1>🏥 精神科護理師<br>臨床生存大富翁</h1>
+        
+        <div class="mode-tabs">
+            <button id="btn-tab-single" class="active" onclick="switchTab('single')">🕹️ 單機遊玩</button>
+            <button id="btn-tab-online" onclick="switchTab('online')">🌐 線上病房 (多人)</button>
+        </div>
+
+        <div id="setup-single">
+            <div class="setting-group">
+                <h3>選擇玩家人數</h3>
+                <select id="player-count" onchange="generateNameInputs()" style="padding: 5px; font-size: 16px;">
+                    <option value="2">2 人</option>
+                    <option value="3">3 人</option>
+                    <option value="4" selected>4 人</option>
+                </select>
+                <div class="name-input-box" id="name-input-container">
+                    <!-- JS 動態產生輸入框 -->
+                </div>
+            </div>
+        </div>
+
+        <div id="setup-online" style="display: none;">
+            <div class="setting-group">
+                <h3>🌐 加入或建立線上病房</h3>
+                <div class="name-input-box">
+                    <input type="text" id="online-player-name" placeholder="請輸入你的護理師名字" value="護理師小美">
+                    <input type="text" id="online-room-code" placeholder="請輸入病房號碼 (如: 6A-101)" value="6A-101">
+                </div>
+                <p style="font-size: 12px; color: #777; margin-top: 10px;">
+                    *提示：要讓不同手機即時連線，未來需要串接資料庫(如Firebase)。此處僅展示介面流程。
+                </p>
+                <button class="btn-start" style="background: var(--warning-color);" onclick="mockOnlineJoin()">加入病房</button>
+            </div>
+        </div>
+
+        <div class="setting-group" id="common-settings">
+            <h3>選擇題庫模式 (可複選)</h3>
+            <label><input type="checkbox" id="mode-fall" value="fall" checked> 防跌倒</label>
+            <label><input type="checkbox" id="mode-violence" value="violence" checked> 防暴力</label>
+            <label><input type="checkbox" id="mode-suicide" value="suicide" checked> 防自殺</label>
+            <hr style="border: 0.5px solid #ddd; margin: 10px 0;">
+            <h3>交班時間</h3>
+            <label><input type="radio" name="time" value="10" checked> 小夜班(10分)</label>
+            <label><input type="radio" name="time" value="20"> 白班(20分)</label>
+            <label><input type="radio" name="time" value="30"> 大夜班(30分)</label>
+        </div>
+
+        <button id="btn-start-game" class="btn-start" onclick="startGame()">開始上班 (進入遊戲)</button>
+    </div>
+
+    <!-- 2. 遊戲主畫面 -->
+    <div id="game-screen">
+        <div class="header-bar">
+            <div>
+                <h2 style="margin: 0; font-size: 20px;">目前輪到：<span id="current-player-text" style="color: #FF6B6B;">玩家 1</span></h2>
+            </div>
+            <div class="timer" id="timer-box">距離交班：<span id="time-display">10:00</span></div>
+            <div>
+                <button style="background: #95A5A6; font-size: 14px; padding: 8px 12px; border:none; color:white; border-radius:5px; cursor:pointer;" onclick="endGame()">[測試]強制下班</button>
+            </div>
+        </div>
+
+        <div class="players-container" id="players-status">
+            <!-- 玩家狀態卡片由 JS 動態產生 -->
+        </div>
+
+        <div class="board-container">
+            <div class="board" id="board">
+                <div class="center-area">
+                    <div class="dice-area">
+                        <h3 style="margin-top: 0; margin-bottom: 10px;">擲骰子區</h3>
+                        <div id="dice-result">🎲</div>
+                        <button id="btn-roll" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold;" onclick="rollDice()">擲骰子</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 事件/題目彈出視窗 -->
+    <div id="action-modal" class="modal-overlay">
+        <div class="modal-content" id="modal-box">
+            <h2 id="modal-title">系統提示</h2>
+            <p id="modal-desc">事件描述...</p>
+            <div class="options" id="modal-options"></div>
+            <div class="result-box" id="modal-result"></div>
+            <button id="btn-next-player" style="margin-top:20px; display:none; width: 100%; background: var(--primary-color); color: white; border: none; padding: 12px; font-size: 16px; border-radius: 8px; cursor: pointer;" onclick="closeModal()">確定，換下一位</button>
+        </div>
+    </div>
+
+    <!-- 4. 結算/交班畫面 -->
+    <div id="end-screen" class="modal-overlay">
+        <div class="modal-content" style="border-top: 8px solid var(--success-color); max-width: 500px;">
+            <h2>🎉 交班時間到！</h2>
+            <p>辛苦了！讓我們來看看今天的【本月優良護理師】是誰？</p>
+            <div id="ranking-container" style="margin: 20px 0;"></div>
+            <button style="width: 100%; background: var(--primary-color); color: white; border: none; padding: 12px; font-size: 16px; border-radius: 8px; cursor: pointer;" onclick="location.reload()">下班！(回首頁)</button>
+        </div>
+    </div>
+
+    <script>
+        // ================= 題庫與資料 =================
+        const questionBank = {
+            fall: [
+                { question: "關於預防跌倒首次評估的時機，下列何者正確？", options: ["A. 住院入院或轉入病人24小時內完成", "B. 住院入院或轉入病人48小時內完成", "C. 入院時在「入院評估」進行第一次評估", "D. 住院入院或轉入病人72小時內完成"], answer: 2, explanation: "解析：根據防跌 SOP，入院時在「入院評估」進行第一次評估，並非 72 小時。" },
+                { question: "預防跌倒評估時機中，如果病人評估為跌倒高危險群(總分≥3分)，請問應多久評估一次？", options: ["A. 每天評估一次", "B. 每三天評估一次", "C. 每週評估一次", "D. 暫不持續評估"], answer: 0, explanation: "解析：跌倒危險因子評估≥3分，每天評估一次；若<3分，每7天評估一次。" },
+                { question: "執行預防跌倒護理措施中，下列哪一項行為是『錯誤』的？", options: ["A. 病床高度降至適當位置，臥床時將床欄拉起", "B. 活動範圍內地面乾燥，並給予個別性護理指導", "C. 躁動不安者，依醫囑不須經家屬同意即予保護性約束", "D. 每2小時及必要時探視，並協助完成ADL"], answer: 2, explanation: "解析：躁動不安或無法配合者，應依醫囑『及家屬同意後』，才予以適當的保護性約束。" }
+            ],
+            violence: [
+                { question: "關於保護性約束同意書的簽署，下列何者正確？", options: ["A. 簽具同意書後始得為之，但情況緊急者不在此限", "B. 不論任何情況，都必須先簽同意書才能約束", "C. 僅需口頭告知家屬，不需簽立書面同意書", "D. 由醫師自行決定即可"], answer: 0, explanation: "解析：簽具保護性約束同意書後始得為之。但情況緊急者，不在此限(須於1小時內取得醫囑，24小時內取得同意書)。" },
+                { question: "無人陪伴之病人，執行保護性約束時須每隔多久檢視其循環與協助生理需要？", options: ["A. 30分鐘", "B. 1小時", "C. 2小時", "D. 每班一次"], answer: 0, explanation: "解析：無人在旁陪伴者至少每 30 分鐘探視 1 次，觀察呼吸、肢體末端血循、情緒並評估生理需要。" },
+                { question: "保護性約束期間，須由醫師『重新評估』病人需約束之原因是否解除的頻率為？", options: ["A. 每班", "B. 每日", "C. 每週", "D. 不須再評估"], answer: 1, explanation: "解析：醫師每日重新評估保護性約束之必要性，開立臨時醫囑。" }
+            ],
+            suicide: [
+                { question: "當發現病人有自殺/傷傾向時，下列處置何者『錯誤』？", options: ["A. 依病人狀況界定「自殺/傷防範措施」等級", "B. 為避免家屬恐慌，不需通知家屬", "C. 懷疑有危險物品時，可施行病室安全檢查", "D. 網路通報異常事件"], answer: 1, explanation: "解析：發現病人有自殺傾向時，『必須通知家屬』說明病人自殺風險。" },
+                { question: "針對 Grade II (重度自殺危險性) 病人，應有的防範措施為何？", options: ["A. 立即會診精神科評估後續處置", "B. 護理人員至少每30分鐘探視一次", "C. 須有家屬或看護24小時全時陪伴", "D. 護理人員至少每60分鐘探視一次"], answer: 3, explanation: "解析：Grade II 重度自殺危險性，護理人員至少每 60 分鐘探視一次。每 30 分鐘探視及 24 小時全時陪伴屬於 Grade III 極重度的措施。" }
+            ]
+        };
+
+        const fateEvents = [
+            { text: "護理長巡房發現你落實 SOP，家屬也讚不絕口！", money: 300 },
+            { text: "病人家屬送來手搖杯慰勞護理站，心情大好！", money: 200 },
+            { text: "交班不清被學姊抓包，回去重寫護理紀錄。", money: -200 },
+            { text: "點班時發現急救車物品過期，被記缺失！", money: -300 }
+        ];
+
+        const cellData = [
+            { id: 0, col: 1, row: 1, text: "護理站(起點)", type: "corner" }, { id: 1, col: 2, row: 1, text: "病床 1<br>(情境)", type: "normal" },
+            { id: 2, col: 3, row: 1, text: "護理長巡房<br>(命運)", type: "fate" }, { id: 3, col: 4, row: 1, text: "病床 2<br>(情境)", type: "normal" },
+            { id: 4, col: 5, row: 1, text: "發藥時間", type: "normal" }, { id: 5, col: 6, row: 1, text: "病床 3<br>(情境)", type: "normal" },
+            { id: 6, col: 7, row: 1, text: "上CPR課", type: "corner" }, { id: 7, col: 7, row: 2, text: "病床 4<br>(情境)", type: "normal" },
+            { id: 8, col: 7, row: 3, text: "病床 5<br>(情境)", type: "normal" }, { id: 9, col: 7, row: 4, text: "護理長巡房<br>(命運)", type: "fate" },
+            { id: 10, col: 7, row: 5, text: "值班室休息", type: "corner" }, { id: 11, col: 6, row: 5, text: "病床 6<br>(情境)", type: "normal" },
+            { id: 12, col: 5, row: 5, text: "病歷查核", type: "normal" }, { id: 13, col: 4, row: 5, text: "病床 7<br>(情境)", type: "normal" },
+            { id: 14, col: 3, row: 5, text: "品管會議", type: "normal" }, { id: 15, col: 2, row: 5, text: "病床 8<br>(情境)", type: "normal" },
+            { id: 16, col: 1, row: 5, text: "急救車檢查", type: "corner" }, { id: 17, col: 1, row: 4, text: "病床 9<br>(情境)", type: "normal" },
+            { id: 18, col: 1, row: 3, text: "護理長巡房<br>(命運)", type: "fate" }, { id: 19, col: 1, row: 2, text: "病床 10<br>(情境)", type: "normal" }
+        ];
+
+        const playerColors = ["#FF6B6B", "#4ECDC4", "#FFE66D", "#1A535C"];
+        let players = [];
+        let currentPlayerIndex = 0;
+        let activeQuestionPool = [];
+        let timerInterval;
+        let timeRemainingSeconds = 0;
+
+        // ================= 初始介面邏輯 =================
+        
+        window.onload = function() { generateNameInputs(); };
+
+        function switchTab(mode) {
+            document.getElementById('btn-tab-single').classList.remove('active');
+            document.getElementById('btn-tab-online').classList.remove('active');
+            document.getElementById(`btn-tab-${mode}`).classList.add('active');
+
+            if(mode === 'single') {
+                document.getElementById('setup-single').style.display = 'block';
+                document.getElementById('setup-online').style.display = 'none';
+                document.getElementById('common-settings').style.display = 'block';
+                document.getElementById('btn-start-game').style.display = 'block';
+            } else {
+                document.getElementById('setup-single').style.display = 'none';
+                document.getElementById('setup-online').style.display = 'block';
+                document.getElementById('common-settings').style.display = 'none';
+                document.getElementById('btn-start-game').style.display = 'none';
+            }
+        }
+
+        function generateNameInputs() {
+            const count = parseInt(document.getElementById('player-count').value);
+            const container = document.getElementById('name-input-container');
+            container.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `<input type="text" id="player-name-${i}" placeholder="請輸入 玩家 ${i+1} 的名字" value="護理師 ${i+1}">`;
+            }
+        }
+
+        function mockOnlineJoin() {
+            const room = document.getElementById('online-room-code').value;
+            alert(`已嘗試連線病房: ${room}\n\n提醒：真正的線上模式需要後端資料庫（如 WebSocket 或 Firebase）才能讓不同裝置同步畫面。這裡我們將自動跳轉回「單機模式」讓您體驗完整遊戲邏輯！`);
+            switchTab('single');
+        }
+
+        // ================= 遊戲核心邏輯 =================
+
+        function startGame() {
+            // 建立玩家資料
+            const count = parseInt(document.getElementById('player-count').value);
+            players = [];
+            for (let i = 0; i < count; i++) {
+                const nameInput = document.getElementById(`player-name-${i}`).value || `玩家 ${i+1}`;
+                players.push({ id: i+1, name: nameInput, color: playerColors[i], pos: 0, money: 2000 });
+            }
+
+            // 建立題庫
+            activeQuestionPool = [];
+            if(document.getElementById('mode-fall').checked) activeQuestionPool.push(...questionBank.fall);
+            if(document.getElementById('mode-violence').checked) activeQuestionPool.push(...questionBank.violence);
+            if(document.getElementById('mode-suicide').checked) activeQuestionPool.push(...questionBank.suicide);
+            if(activeQuestionPool.length === 0) return alert("請至少選擇一種題庫模式！");
+
+            // 時間
+            const timeRadios = document.getElementsByName('time');
+            for (let radio of timeRadios) {
+                if (radio.checked) { timeRemainingSeconds = parseInt(radio.value) * 60; break; }
+            }
+
+            // 切換畫面
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            
+            // 渲染頂部狀態卡
+            const statusContainer = document.getElementById('players-status');
+            statusContainer.innerHTML = '';
+            players.forEach((p, index) => {
+                statusContainer.innerHTML += `
+                    <div class="player-card ${index === 0 ? 'active' : ''}" id="card-${p.id}" style="border-color: ${p.color}">
+                        <h3>${p.name}</h3>
+                        <div class="money" id="money-${p.id}" style="color:var(--warning-color)">績效: $${p.money}</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('current-player-text').innerText = players[0].name;
+            document.getElementById('current-player-text').style.color = players[0].color;
+
+            // 渲染棋盤
+            const board = document.getElementById('board');
+            cellData.forEach(cell => {
+                const cellDiv = document.createElement('div');
+                cellDiv.className = `cell ${cell.type}`;
+                cellDiv.style.gridColumn = cell.col;
+                cellDiv.style.gridRow = cell.row;
+                cellDiv.innerHTML = `<div class="title">${cell.text}</div><div class="token-area" id="token-area-${cell.id}"></div>`;
+                board.appendChild(cellDiv);
+            });
+            updateTokensOnBoard();
+            
+            // 啟動計時
+            updateTimerDisplay();
+            timerInterval = setInterval(countdown, 1000);
+        }
+
+        function countdown() {
+            timeRemainingSeconds--;
+            updateTimerDisplay();
+            if (timeRemainingSeconds <= 0) { clearInterval(timerInterval); endGame(); }
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemainingSeconds / 60);
+            const seconds = timeRemainingSeconds % 60;
+            document.getElementById('time-display').innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (timeRemainingSeconds > 0 && timeRemainingSeconds <= 60) document.getElementById('timer-box').classList.add('warning');
+            else document.getElementById('timer-box').classList.remove('warning');
+        }
+
+        function updateTokensOnBoard() {
+            for (let i = 0; i < 20; i++) { document.getElementById(`token-area-${i}`).innerHTML = ""; }
+            players.forEach(p => {
+                const token = document.createElement('div');
+                token.className = `player-token token-${p.id}`;
+                token.style.backgroundColor = p.color;
+                token.innerText = p.id; // 在棋子上標示數字
+                document.getElementById(`token-area-${p.pos}`).appendChild(token);
+                document.getElementById(`money-${p.id}`).innerText = `績效: $${p.money}`;
+            });
+        }
+
+        // ================= 一格一格移動的動畫邏輯 =================
+
+        function rollDice() {
+            const btn = document.getElementById('btn-roll');
+            btn.disabled = true;
+            let rolls = 0;
+            
+            // 骰子轉動動畫
+            const rollInterval = setInterval(() => {
+                document.getElementById('dice-result').innerText = Math.floor(Math.random() * 6) + 1;
+                rolls++;
+                if (rolls >= 10) {
+                    clearInterval(rollInterval);
+                    const steps = Math.floor(Math.random() * 6) + 1;
+                    document.getElementById('dice-result').innerText = steps;
+                    movePlayerStepByStep(steps);
+                }
+            }, 50);
+        }
+
+        function movePlayerStepByStep(steps) {
+            let p = players[currentPlayerIndex];
+            let currentStepCount = 0;
+
+            // 使用 setInterval 達成一格一格走的動畫
+            let moveInterval = setInterval(() => {
+                p.pos = (p.pos + 1) % 20; // 往前一格
+                
+                // 經過起點加薪判定
+                if (p.pos === 0) {
+                    p.money += 500; 
+                    // 不用 alert 避免打斷動畫，可以改用 console 或是 UI 短暫提示，這裡簡化處理直接加錢
+                }
+
+                updateTokensOnBoard(); // 重新繪製棋盤
+                currentStepCount++;
+
+                // 走完指定步數後停止
+                if (currentStepCount >= steps) {
+                    clearInterval(moveInterval);
+                    
+                    // 停留半秒後彈出題目/事件視窗
+                    setTimeout(() => { triggerCellEvent(p); }, 500);
+                }
+            }, 300); // 每 0.3 秒走一格 (可以自己調整速度)
+        }
+
+        function triggerCellEvent(player) {
+            const cell = cellData[player.pos];
+            const modalTitle = document.getElementById('modal-title');
+            const modalDesc = document.getElementById('modal-desc');
+            const modalOptions = document.getElementById('modal-options');
+            const modalResult = document.getElementById('modal-result');
+            const btnNext = document.getElementById('btn-next-player');
+            
+            modalOptions.innerHTML = ''; modalResult.style.display = 'none'; btnNext.style.display = 'none';
+
+            if (cell.text.includes("病床")) {
+                modalTitle.innerText = "🚨 臨床情境題"; modalTitle.style.color = "var(--primary-color)";
+                const q = activeQuestionPool[Math.floor(Math.random() * activeQuestionPool.length)];
+                modalDesc.innerHTML = `<b>${player.name}</b>，你來到病房。<br><br><b>${q.question}</b>`;
+                q.options.forEach((opt, index) => {
+                    const btn = document.createElement('button'); btn.innerText = opt;
+                    btn.onclick = () => checkAnswer(player, index, q.answer, q.explanation);
+                    modalOptions.appendChild(btn);
+                });
+            } else if (cell.type === "fate") {
+                modalTitle.innerText = "📋 護理長巡房 (命運)"; modalTitle.style.color = "var(--warning-color)";
+                const f = fateEvents[Math.floor(Math.random() * fateEvents.length)];
+                modalDesc.innerHTML = `<b>${player.name}</b>：<br><br><span style="font-size: 18px;">${f.text}</span><br><br><b>${f.money > 0 ? '+' : ''}${f.money} 績效</b>`;
+                player.money += f.money;
+                btnNext.style.display = 'block';
+            } else {
+                modalTitle.innerText = "☕ 日常勤務"; modalTitle.style.color = "var(--text-color)";
+                modalDesc.innerText = `${player.name} 在 ${cell.text.replace('<br>', '')} 執行勤務，平安無事度過這回合。`;
+                btnNext.style.display = 'block';
+            }
+            updateTokensOnBoard();
+            document.getElementById('action-modal').style.display = 'flex';
+        }
+
+        function checkAnswer(player, selectedIdx, correctIdx, explanation) {
+            const modalOptions = document.getElementById('modal-options');
+            const modalResult = document.getElementById('modal-result');
+            const btnNext = document.getElementById('btn-next-player');
+
+            Array.from(modalOptions.children).forEach(btn => btn.disabled = true);
+            modalResult.style.display = 'block';
+            
+            if (selectedIdx === correctIdx) {
+                player.money += 500; modalResult.className = 'result-box correct';
+                modalResult.innerHTML = `✔️ 答對了！獲得 $500 績效。<br><br><small>${explanation}</small>`;
+            } else {
+                player.money -= 300; modalResult.className = 'result-box wrong';
+                modalResult.innerHTML = `❌ 答錯了！扣除 $300 績效。<br><br><small>${explanation}</small>`;
+            }
+            btnNext.style.display = 'block'; updateTokensOnBoard();
+        }
+
+        function closeModal() {
+            document.getElementById('action-modal').style.display = 'none';
+            document.getElementById(`card-${players[currentPlayerIndex].id}`).classList.remove('active');
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            document.getElementById(`card-${players[currentPlayerIndex].id}`).classList.add('active');
+            document.getElementById('current-player-text').innerText = `${players[currentPlayerIndex].name}`;
+            document.getElementById('current-player-text').style.color = players[currentPlayerIndex].color;
+            document.getElementById('dice-result').innerText = "🎲";
+            document.getElementById('btn-roll').disabled = false;
+        }
+
+        // ================= 結算畫面 =================
+
+        function endGame() {
+            clearInterval(timerInterval);
+            document.getElementById('action-modal').style.display = 'none';
+            document.getElementById('btn-roll').disabled = true;
+            
+            let sortedPlayers = [...players].sort((a, b) => b.money - a.money);
+            const rankingContainer = document.getElementById('ranking-container');
+            rankingContainer.innerHTML = '';
+            
+            const medals = ["🥇", "🥈", "🥉", "🏅"];
+            sortedPlayers.forEach((p, index) => {
+                const item = document.createElement('div');
+                item.className = index === 0 ? "rank-item first" : "rank-item";
+                item.innerHTML = `<span>${medals[index] || ''} <span style="color:${p.color}">${p.name}</span></span><span>$${p.money}</span>`;
+                rankingContainer.appendChild(item);
+            });
+            document.getElementById('end-screen').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
